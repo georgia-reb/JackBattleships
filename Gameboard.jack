@@ -1,0 +1,339 @@
+/*
+ * Gameboard.jack
+ * Georgia Klein
+ * 2020-04-03
+ * Project 9: High-Level Language
+ * Advanced Computer Science: Nand to Tetris
+ *
+ * A one-sided battleships game.
+ *
+ * In this game, the program randomly generates a battleships
+ * gameboard, with the five ships placed on it. The player then
+ * has to guess the location of the ships. The player is told
+ * how many guesses it takes for them to destory all of the ships.
+ */
+
+
+class Gameboard {
+	
+	field Array ships;
+	field int numHits;
+	field Array allGuesses;
+	field int endArray;
+	
+	constructor Gameboard new() {
+		// Array that will hold all of the users guesses, used to
+		// make sure that if a user guesses the same coordianate more
+		// than once, it is only counted one time. 
+		let ships = Array.new(5);
+		let allGuesses = Array.new(200);
+		let endArray = 0;
+		let numHits = 0;
+		
+		return this;
+	}
+	
+	method void dispose() {
+		// Disposes all five Ship objects as well as this Gameboard and two arrays.
+		
+		var int disposeShips;
+		var Ship currentShip;
+		
+		let disposeShips = 0;
+		while (disposeShips < 5) {
+			let currentShip = ships[disposeShips];
+			do currentShip.dispose();
+			let disposeShips = disposeShips + 1;
+		}
+		
+		do Memory.deAlloc(this);
+		
+		return;
+	}
+	
+	method void drawGridOutline() {
+		// Draws the outline for the grid with the numbers and letters.
+		
+		var int drawLines;
+		var int lineValue;
+		var int rowValue;
+		var char verticleLetter;
+		
+		do Screen.setColor(true);
+		
+		// Draws outside square
+			// The coordinates are:
+			// (265, 27)		(502, 27)
+			// (265, 247)		(502, 247)
+		do Screen.drawLine(265, 27, 502, 27);
+		do Screen.drawLine(502, 247, 502, 27);
+		do Screen.drawLine(502, 247, 265, 247);
+		do Screen.drawLine(265, 27, 265, 247);
+		
+		// Draws numbers.
+		do Output.moveCursor(1, 34);
+		do Output.printString("0  1  2  3  4  5  6  7  8  9");
+		
+		// Draws all the verticle lines.
+		let drawLines = 9;
+		let lineValue = 286;
+		
+		while (drawLines > 0) {
+			do Screen.drawLine(lineValue, 10, lineValue, 247);
+			let lineValue = lineValue + 24;
+			let drawLines = drawLines - 1;
+		}
+		
+		// Draws all the horizontal lines and the letters.
+		let verticleLetter = 65;
+		let drawLines = 10;
+		let rowValue = 3;
+		let lineValue = 50;
+		
+		while (drawLines > 0) {
+			do Output.moveCursor(rowValue, 32);
+			do Output.printChar(verticleLetter);
+			
+			if (~(drawLines = 1)) {
+			do Screen.drawLine(255, lineValue, 502, lineValue);
+			}
+			
+			let lineValue = lineValue + 22;
+			let rowValue = rowValue + 2;
+			let verticleLetter = verticleLetter + 1;
+			let drawLines = drawLines - 1;
+		}
+		
+		return;
+	}
+	
+	method void placeShips(int chooseBoard) {
+		// This will place all 5 ships, based off of the value of the input.
+		
+		var Ship destroyer;
+		var Ship submarine;
+		var Ship crusier;
+		var Ship battleship;
+		var Ship carrier;
+		
+		if (chooseBoard = 0) {
+			let destroyer = Ship.new(0, 1, 0, true);
+			let submarine = Ship.new(1, 4, 2, false);
+			let crusier = Ship.new(2, 3, 6, true);
+			let battleship = Ship.new(3, 7, 4, true);
+			let carrier = Ship.new(4, 1, 4, false);
+		}
+		if (chooseBoard = 1) {
+			let destroyer = Ship.new(0, 8, 1, true);
+			let submarine = Ship.new(1, 1, 1, true);
+			let crusier = Ship.new(2, 1, 9, false);
+			let battleship = Ship.new(3, 6, 8, false);
+			let carrier = Ship.new(4, 4, 3, true);
+		}
+		if (chooseBoard = 2) {
+			let destroyer = Ship.new(0, 7, 1, true);
+			let submarine = Ship.new(1, 2, 2, false);
+			let crusier = Ship.new(2, 1, 8, false);
+			let battleship = Ship.new(3, 9, 6, true);
+			let carrier = Ship.new(4, 3, 7, false);
+		}
+		if (chooseBoard = 3) {
+			let destroyer = Ship.new(0, 0, 7, false);
+			let submarine = Ship.new(1, 2, 2, true);
+			let crusier = Ship.new(2, 6, 0, true);
+			let battleship = Ship.new(3, 6, 4, false);
+			let carrier = Ship.new(4, 4, 8, false);
+		}
+		if (chooseBoard = 4) {
+			let destroyer = Ship.new(0, 2, 2, false);
+			let submarine = Ship.new(1, 1, 6, false);
+			let crusier = Ship.new(2, 6, 7, false);
+			let battleship = Ship.new(3, 7, 0, true);
+			let carrier = Ship.new(4, 4, 4, true);
+		}
+		
+		// Puts the five Ship objects into the array called ships.
+		let ships[0] = destroyer;
+		let ships[1] = submarine;
+		let ships[2] = crusier;
+		let ships[3] = battleship;
+		let ships[4] = carrier;
+		
+		return;
+	}
+	
+	method int placeGuess(int xInt, char yChar) {
+		// Places a guess at the provided coordinates.
+		
+		var int xValue;
+		var int yValue;
+		var int checkShips;
+		var Ship currentShip;
+		var Array shipCoords;
+		var boolean isRepeat;
+		
+		var boolean isHit;
+		var boolean xHit;
+		var boolean yHit;
+		
+		let xValue = xInt;
+		// Converts the letter value (y coordinate) into an int
+		// representating the row on the gameboard.
+		let yValue = Gameboard.convertCharToInt(yChar);
+		
+		// Checks to see if the inputted coordinates have already been guessed.
+		// If so, then nothing is done because the drawing is already there, and
+		// if it was it a hit, it has already been counted.
+		let isRepeat = alreadyGuessed(xValue, yValue);
+		// Adds the guessed values to the array of all guesses.
+		let allGuesses[endArray] = xValue;
+		let allGuesses[endArray + 1] = yValue;
+		let endArray = endArray + 2;
+		
+		// If the coordinates have not already been guessed.
+		if (~isRepeat) {
+			//do Screen.clearScreen();
+			// Checks to see if the guess is a hit or a miss.
+			let isHit = false;
+			// Sees if any of the five ships were hit.
+			let checkShips = 0;
+			while (checkShips < 5) {
+				// Gets the coodinates of the beginning and end of the current ship.
+				let currentShip = ships[checkShips];
+				let shipCoords = currentShip.getCoords();
+				// Updates to be ready to check the next ship in the next loop.
+				let checkShips = checkShips + 1;
+				
+				// Sees if the x coordinate and y coordiante are within the range given
+				// by the coordinates of the start and end of the ship.
+				let xHit = (((xValue = shipCoords[0]) | (xValue = shipCoords[2])) | ((xValue > shipCoords[0]) & (xValue < shipCoords[2])));
+				let yHit = (((yValue = shipCoords[1]) | (yValue = shipCoords[3])) | ((yValue > shipCoords[1]) & (yValue < shipCoords[3])));
+				
+				// If it is within the range for both the x and y cooridnate, then that
+				// means the ship has been hit.
+				if (xHit & yHit) {
+					let isHit = true;
+				}
+			}
+			
+			if (isHit) {
+				do Gameboard.drawHit(xValue, yValue);
+				do Output.moveCursor(20, 1);
+				do Output.printString("       ");
+				do Output.moveCursor(20, 1);
+				do Output.printString("Hit!");
+				let numHits = numHits + 1;
+			}
+			else {
+				do Gameboard.drawMiss(xValue, yValue);
+				do Output.moveCursor(20, 1);
+				do Output.printString("       ");
+				do Output.moveCursor(20, 1);
+				do Output.printString("Miss...");
+			}
+		}
+		
+		return numHits;
+	}
+	
+	method boolean alreadyGuessed(int xValue, int yValue) {
+		// Checks to see if the given cooridnates have already been guessed.
+		
+		// allGuesses is a 1D array with the x and y coordinates for each
+		// guess coming right after each other. ex: [x1, y1, x2, y2... ]
+		
+		var int increment;
+		var boolean isRepeat;
+		
+		let increment = 0;
+		let isRepeat = false;
+		while (increment < endArray) {
+			if ((xValue = allGuesses[increment]) & (yValue = allGuesses[increment + 1])) {
+				let isRepeat = true;
+			}
+			let increment = increment + 2;
+		}
+		
+		return isRepeat;
+	}
+	
+	function void drawHit(int xValue, int yValue) {
+		// Draws a hit, which is a filled in circle, at the location provided
+		// by the parameters.
+		
+		var int x;
+		var int y;
+		
+		// Draws a filled in black circle.
+		let x = 265 + (24 * xValue) + 9;
+		let y = 27 + (22 * yValue) + 12;
+		
+		do Screen.setColor(true);
+		do Screen.drawCircle(x, y, 10);
+		
+		return;
+	}
+	
+	function void drawMiss(int xValue, int yValue) {
+		// Draws a miss, which is a circle that is not filled in, at the
+		// location provided by the parameters.
+		
+		var int x;
+		var int y;
+		
+		// Draws a filled in black circle.
+		let x = 265 + (24 * xValue) + 9;
+		let y = 27 + (22 * yValue) + 12;
+		
+		do Screen.setColor(true);
+		do Screen.drawCircle(x, y, 10);
+		
+		// Draws a filled in white circle inside of the black circle.
+		let x = 265 + (24 * xValue) + 9;
+		let y = 27 + (22 * yValue) + 12;
+		
+		do Screen.setColor(false);
+		do Screen.drawCircle(x, y, 8);
+		
+		return;
+	}
+	
+	function int convertCharToInt(char inputChar) {
+		// Converts char values to integers, where "a" = 0, "b" = 1, "c" = 2, etc.
+		
+		var int outputInt;
+		
+		if (inputChar = 65) {
+			let outputInt = 0;
+		}
+		if (inputChar = 66) {
+			let outputInt = 1;
+		}
+		if (inputChar = 67) {
+			let outputInt = 2;
+		}
+		if (inputChar = 68) {
+			let outputInt = 3;
+		}
+		if (inputChar = 69) {
+			let outputInt = 4;
+		}
+		if (inputChar = 70) {
+			let outputInt = 5;
+		}
+		if (inputChar = 71) {
+			let outputInt = 6;
+		}
+		if (inputChar = 72) {
+			let outputInt = 7;
+		}
+		if (inputChar = 73) {
+			let outputInt = 8;
+		}
+		if (inputChar = 74) {
+			let outputInt = 9;
+		}
+		
+		return outputInt;
+	}
+}

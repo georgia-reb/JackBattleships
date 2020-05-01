@@ -1,0 +1,71 @@
+/*
+ * Ship.jack
+ * Georgia Klein
+ * 2020-04-03
+ * Project 9: High-Level Language
+ * Advanced Computer Science: Nand to Tetris
+ *
+ * A one-sided battleships game.
+ *
+ * In this game, the program randomly generates a battleships
+ * gameboard, with the five ships placed on it. The player then
+ * has to guess the location of the ships. The player is told
+ * how many guesses it takes for them to destory all of the ships.
+ */
+
+class Ship {
+	
+	field int shipType;
+	field int xStart;
+	field int yStart;
+	field int shipLength;
+	field boolean isVerticle;
+	
+	constructor Ship new(int shipInputType, int xLocationStart, int yLocationStart, boolean verticle) {
+		let shipType = shipInputType;
+		let xStart = xLocationStart;
+		let yStart = yLocationStart;
+		let isVerticle = verticle;
+		
+		// Determines the length of the ship based off of the given type.
+		if (shipType = 0) {
+			let shipLength = 2;
+		}
+		if ((shipType = 1) | (shipType = 2)) {
+			let shipLength = 3;
+		}
+		if (shipType = 3) {
+			let shipLength = 4;
+		}
+		if (shipType = 4) {
+			let shipLength = 5;
+		}
+		
+		return this;
+	}
+	
+	method Array getCoords() {
+		// Returns an array with the coordinates of the beginning and end of the ship. 
+		
+		var Array coords;
+		
+		let coords = Array.new(4);
+		let coords[0] = xStart;
+		let coords[1] = yStart;
+		if (isVerticle) {
+			let coords[2] = xStart;
+			let coords[3] = yStart + shipLength - 1;
+		} else {
+			let coords[2] = xStart + shipLength - 1;
+			let coords[3] = yStart;
+		}
+		
+		return coords;
+	}
+	
+	method void dispose() {
+		do Memory.deAlloc(this);
+		return;
+	}
+	
+}

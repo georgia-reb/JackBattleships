@@ -1,0 +1,163 @@
+/*
+ * Main.jack
+ * Georgia Klein
+ * 2020-04-03
+ * Project 9: High-Level Language
+ * Advanced Computer Science: Nand to Tetris
+ *
+ * A one-sided battleships game.
+ *
+ * In this game, the program randomly generates a battleships
+ * gameboard, with the five ships placed on it. The player then
+ * has to guess the location of the ships. The player is told
+ * how many guesses it takes for them to destory all of the ships.
+ *
+ * The Random class is adapted from a project done by user xctom
+ * on Github.
+ * https://github.com/xctom/Nand2Tetris/blob/master/projects/09/PigDice/Random.jack
+ */
+
+
+class Main {
+	
+	function void main() {
+		
+		var Gameboard game;
+		var int guessesTried;
+		var boolean gameNotOver;
+		var boolean currentlyPlaying;
+		var String seed;
+		var int seedInt;
+		var String playAgain;
+		var Random randGenerator;
+		var int chooseBoard;
+		
+		// Collects a seed to create a random order in which
+		// the five gameboards will be given and makes a random object.
+		do Output.moveCursor(1, 1);
+		let seed = Keyboard.readLine("Enter a random number before the game begins: ");
+		let seedInt = seed.intValue();
+		let randGenerator = Random.new(seedInt);
+		do Screen.clearScreen();
+		
+		let currentlyPlaying = true;
+		while (currentlyPlaying) {
+			
+			// Creates a Gameboard object for this round.
+			let game = Gameboard.new();
+			
+			// Initial set up for the game.
+			do Main.printInstructions();
+			do game.drawGridOutline();
+			// Generates a random number 0 through 4 (inclusive) which then
+			// chooses one of the premade gameboard placements.
+			let chooseBoard = randGenerator.randRange(4);
+			do game.placeShips(chooseBoard);
+			
+			// User continues to guess until they have sunk all of the ships.
+			let guessesTried = 0;
+			let gameNotOver = true;
+			while (gameNotOver) {
+				let gameNotOver = Main.playRound(game, guessesTried);
+				let guessesTried = guessesTried + 1;
+			}
+			
+			// Disposes the Gameboard object as well as all five Ship objects.
+			do game.dispose();
+			
+			// Lets the player know that they won the game.
+			do Screen.clearScreen();
+			do Output.moveCursor(1, 1);
+			do Output.printString("You won in ");
+			do Output.printInt(guessesTried);
+			do Output.printString(" turns. Congrats!");
+			do Sys.wait(3000);
+			do Screen.clearScreen();
+			
+			// Asks if they would like to play another round.
+			do Output.moveCursor(1, 1);
+			let playAgain = Keyboard.readLine("Would you like to play again (y/n): ");
+			do Screen.clearScreen();
+			if (playAgain.charAt(0) = 78) {
+				let currentlyPlaying = false;
+			}
+		}
+		
+		return;
+	}
+	
+	function void printInstructions() {
+		
+		// Prints the instructions for the game.
+		// They are on the left side of the screen, and remain there
+		// throughout the entire game.
+		do Output.moveCursor(1, 1);
+		do Output.printString("Welcome to Battleships!");
+		do Output.moveCursor(3, 1);
+		do Output.printString("The goal of battleships is to");
+		do Output.moveCursor(4, 1);
+		do Output.printString("destory all of your enemies'");
+		do Output.moveCursor(5, 1);
+		do Output.printString("ships by bombing them. The");
+		do Output.moveCursor(6, 1);
+		do Output.printString("tricky part is that you are");
+		do Output.moveCursor(7, 1);
+		do Output.printString("unable to see their ships." );
+		do Output.moveCursor(8, 1);
+		do Output.printString("To place a bomb, enter the x");
+		do Output.moveCursor(9, 1);
+		do Output.printString("coordinate and y coordiante of");
+		do Output.moveCursor(10, 1);
+		do Output.printString("your chosen square on the grid.");
+		do Output.moveCursor(11, 1);
+		do Output.printString("Your enemy has five ships");
+		do Output.moveCursor(12, 1);
+		do Output.printString("placed on the grid. A");
+		do Output.moveCursor(13, 1);
+		do Output.printString("destroyer (2), submarine (3),");
+		do Output.moveCursor(14, 1);
+		do Output.printString("cruiser (3), battleship (4)");
+		do Output.moveCursor(15, 1);
+		do Output.printString("and carrier (5).");
+		
+		return;
+	}
+	
+	function boolean playRound(Gameboard game, int guessesTried) {
+		
+		var String number;
+		var String letter;
+		var int numHits;
+		var boolean continueGame;
+		
+		// Prints the number of guesses in the bottom left corner
+		// of the screen.
+		do Output.moveCursor(21, 1);
+		do Output.printString("Number of Guesses: ");
+		do Output.printInt(guessesTried);
+		
+		// Gets the user input for the number and letter coordinates.
+		do Output.moveCursor(18, 1);
+		do Output.printString("                  ");
+		do Output.moveCursor(18, 1);
+		let number = Keyboard.readLine("Enter a number: ");
+		do Output.moveCursor(19, 1);
+		do Output.printString("                  ");
+		do Output.moveCursor(19, 1);
+		let letter = Keyboard.readLine("Enter a letter: ");
+		
+		// Places the guess into the Gameboard object. This returns the
+		// numbers of correct guesses that the user currently has, which is
+		// used to figure out if the user has destroyed all of the ships yet.
+		let numHits = game.placeGuess(number.intValue(), letter.charAt(0));
+		// 17 hits = length of all ships combined = 2 + 3 + 3 + 4 + 5
+		if (numHits = 17) {
+			let continueGame = false;
+		} else {
+			let continueGame = true;
+		}
+		
+		return continueGame;
+	}
+	
+}
